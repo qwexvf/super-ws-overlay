@@ -23,6 +23,7 @@ jobs:
         run: |
           pacman -Syu --noconfirm
           pacman -S --noconfirm base-devel git hyprland jq pkg-config github-cli
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Get Hyprland version
         id: hypr
