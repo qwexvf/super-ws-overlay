@@ -1,0 +1,30 @@
+; ── Variables (set by the plugin at runtime) ─────────────────
+(defvar ws-overlay-text0 "")
+(defvar ws-overlay-text1 "")
+(defvar ws-overlay-style "")
+(defvar ws-overlay-size 120)
+
+; ── Overlay windows ──────────────────────────────────────────
+; Add one defwindow per monitor. Adjust :monitor index as needed.
+
+(defwindow ws-overlay-0
+  :monitor 0
+  :namespace "eww-ws-overlay"
+  :stacking "overlay"
+  :focusable false
+  :geometry (geometry
+    :anchor "center"
+    :width "${ws-overlay-size}px"
+    :height "${ws-overlay-size}px")
+  (label :class "ws-overlay" :style ws-overlay-style :text ws-overlay-text0))
+
+(defwindow ws-overlay-1
+  :monitor 1
+  :namespace "eww-ws-overlay"
+  :stacking "overlay"
+  :focusable false
+  :geometry (geometry
+    :anchor "center"
+    :width "${ws-overlay-size}px"
+    :height "${ws-overlay-size}px")
+  (label :class "ws-overlay" :style ws-overlay-style :text ws-overlay-text1))

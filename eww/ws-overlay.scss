@@ -1,0 +1,6 @@
+// Base class for the overlay label.
+// Inline :style from the plugin overrides colors/radius/font-size at runtime.
+.ws-overlay {
+  font-weight: bold;
+  font-family: "ZedMono Nerd Font", "JetBrainsMono Nerd Font", monospace;
+}
