@@ -28,7 +28,7 @@ hyprpm enable super-ws-overlay
 
 ### 1. Add eww widgets
 
-Copy the overlay definitions from `eww/ws-overlay.yuck` and `eww/ws-overlay.scss` into your eww config.
+Copy the overlay definitions from `src/eww/ws-overlay.yuck` and `src/eww/ws-overlay.scss` into your eww config.
 
 Add one `defwindow ws-overlay-N` per monitor (examples for monitors 0 and 1 are included).
 
