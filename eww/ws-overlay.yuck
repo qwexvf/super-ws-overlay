@@ -2,7 +2,6 @@
 (defvar ws-overlay-text0 "")
 (defvar ws-overlay-text1 "")
 (defvar ws-overlay-style "")
-(defvar ws-overlay-size 120)
 
 ; ── Overlay windows ──────────────────────────────────────────
 ; Add one defwindow per monitor. Adjust :monitor index as needed.
@@ -14,8 +13,8 @@
   :focusable false
   :geometry (geometry
     :anchor "center"
-    :width "${ws-overlay-size}px"
-    :height "${ws-overlay-size}px")
+    :width "120px"
+    :height "120px")
   (label :class "ws-overlay" :style ws-overlay-style :text ws-overlay-text0))
 
 (defwindow ws-overlay-1
@@ -25,6 +24,6 @@
   :focusable false
   :geometry (geometry
     :anchor "center"
-    :width "${ws-overlay-size}px"
-    :height "${ws-overlay-size}px")
+    :width "120px"
+    :height "120px")
   (label :class "ws-overlay" :style ws-overlay-style :text ws-overlay-text1))

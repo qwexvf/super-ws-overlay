@@ -4,22 +4,32 @@ A Hyprland plugin that shows a workspace number overlay on each monitor when you
 
 ![Hyprland](https://img.shields.io/badge/Hyprland-v0.54+-blue)
 
+## Quick Install
+
+```bash
+curl -sfL https://raw.githubusercontent.com/qwexvf/super-ws-overlay/main/install.sh | bash
+```
+
+This will download a prebuilt binary if one matches your Hyprland version, or build from source otherwise.
+
 ## Features
 
 - Shows active workspace number centered on each monitor
-- Configurable hold delay, colors, size, border radius, and font size
+- Configurable hold delay, colors, border radius, and font size
 - Cancels if Super is used as a modifier (e.g. Super+1)
 - Uses eww for rendering overlays
 
 ## Dependencies
 
-- Hyprland >= 0.54 (with dev headers)
+- Hyprland >= 0.54 (with dev headers for building from source)
 - eww (Elkowar's Wacky Widgets)
-- pkg-config
+- pkg-config (for building from source)
 
-## Build & Install
+## Manual Build & Install
 
 ```bash
+git clone https://github.com/qwexvf/super-ws-overlay.git
+cd super-ws-overlay
 make
 make install  # installs to ~/.config/hypr/plugins/
 ```
@@ -48,7 +58,6 @@ plugin {
         border_color = rgba(255, 255, 255, 0.08)
         border_radius = 16
         font_size = 48
-        size = 120
     }
 }
 ```
@@ -74,9 +83,8 @@ layerrule {
 | `border_color` | string | `rgba(255, 255, 255, 0.08)` | Border color (CSS) |
 | `border_radius` | int | `16` | Border radius in px |
 | `font_size` | int | `48` | Font size in px |
-| `size` | int | `120` | Overlay window size in px |
 
-All options live under `plugin { super-ws-overlay { ... } }` and are reloaded on Hyprland config reload.
+All options live under `plugin { super-ws-overlay { ... } }` and are reloaded on Hyprland config reload — no recompile needed.
 
 ## License
 

@@ -39,14 +39,12 @@ static void showOverlays() {
     auto border = CFG("border_color");
     auto radius = cfgInt("border_radius");
     auto fsize  = cfgInt("font_size");
-    auto size   = cfgInt("size");
-
     auto style = std::format(
         "background: {}; color: {}; border: 1px solid {}; border-radius: {}px; font-size: {}px;",
         bg, fg, border, radius, fsize);
 
     std::string cmd = "bash -c '";
-    cmd += std::format("eww update ws-overlay-style=\"{}\" ws-overlay-size={} ; ", style, size);
+    cmd += std::format("eww update ws-overlay-style=\"{}\" ; ", style);
 
     for (auto const& mon : g_pCompositor->m_monitors) {
         auto ws = mon->m_activeWorkspace;
@@ -122,7 +120,6 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addConfigValue(handle, "plugin:super-ws-overlay:border_color",   Hyprlang::STRING{"rgba(255, 255, 255, 0.08)"});
     HyprlandAPI::addConfigValue(handle, "plugin:super-ws-overlay:border_radius",  Hyprlang::INT{16});
     HyprlandAPI::addConfigValue(handle, "plugin:super-ws-overlay:font_size",      Hyprlang::INT{48});
-    HyprlandAPI::addConfigValue(handle, "plugin:super-ws-overlay:size",           Hyprlang::INT{120});
 
     g_keyListener = Event::bus()->m_events.input.keyboard.key.listen(
         [](const IKeyboard::SKeyEvent& ev, Event::SCallbackInfo& info) { onKeyEvent(ev, info); });
