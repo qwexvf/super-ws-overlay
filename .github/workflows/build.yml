@@ -19,7 +19,7 @@ jobs:
         run: |
           # Grab the 3 most recent stable tags
           TAGS=$(curl -sf https://api.github.com/repos/hyprwm/Hyprland/releases \
-            | jq -r '[.[] | select(.prerelease == false) | .tag_name] | .[0:3]')
+            | jq -c '[.[] | select(.prerelease == false) | .tag_name] | .[0:3]')
           echo "matrix=$TAGS" >> "$GITHUB_OUTPUT"
           echo "Building against: $TAGS"
 
