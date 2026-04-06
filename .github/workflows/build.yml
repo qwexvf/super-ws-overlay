@@ -8,6 +8,9 @@ on:
     - cron: "0 6 * * *"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -19,7 +22,7 @@ jobs:
       - name: Install dependencies
         run: |
           pacman -Syu --noconfirm
-          pacman -S --noconfirm base-devel hyprland jq pkg-config github-cli
+          pacman -S --noconfirm base-devel git hyprland jq pkg-config github-cli
 
       - name: Get Hyprland version
         id: hypr
@@ -44,35 +47,23 @@ jobs:
           name: super-ws-overlay-${{ steps.hypr.outputs.tag }}
           path: super-ws-overlay.so
 
-      - name: Check if release exists
-        id: check
+      - name: Create or update release
         run: |
           TAG="${{ steps.hypr.outputs.tag }}-1"
           if gh release view "$TAG" &>/dev/null 2>&1; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
+            gh release upload "$TAG" super-ws-overlay.so --clobber
           else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create release
-        if: steps.check.outputs.exists == 'false'
-        run: |
-          TAG="${{ steps.hypr.outputs.tag }}-1"
-          gh release create "$TAG" super-ws-overlay.so \
-            --title "super-ws-overlay for Hyprland ${{ steps.hypr.outputs.tag }}" \
-            --notes "$(cat <<'EOF'
-          Prebuilt binary for Hyprland ${{ steps.hypr.outputs.tag }} (x86_64 Linux).
+            gh release create "$TAG" super-ws-overlay.so \
+              --title "super-ws-overlay for Hyprland ${{ steps.hypr.outputs.tag }}" \
+              --notes "Prebuilt binary for Hyprland ${{ steps.hypr.outputs.tag }} (x86_64 Linux).
 
           ## Install
 
-          ```bash
+          \`\`\`bash
           curl -sfL https://raw.githubusercontent.com/qwexvf/super-ws-overlay/main/install.sh | bash
-          ```
+          \`\`\`
 
-          Or download `super-ws-overlay.so` and place it in `~/.config/hypr/plugins/`.
-          EOF
-          )"
+          Or download \`super-ws-overlay.so\` and place it in \`~/.config/hypr/plugins/\`."
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
