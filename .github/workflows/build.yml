@@ -1,0 +1,151 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # Check for new Hyprland releases daily at 06:00 UTC
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  check-hyprland:
+    runs-on: ubuntu-latest
+    outputs:
+      versions: ${{ steps.versions.outputs.matrix }}
+    steps:
+      - name: Get recent Hyprland release tags
+        id: versions
+        run: |
+          # Grab the 3 most recent stable tags
+          TAGS=$(curl -sf https://api.github.com/repos/hyprwm/Hyprland/releases \
+            | jq -r '[.[] | select(.prerelease == false) | .tag_name] | .[0:3]')
+          echo "matrix=$TAGS" >> "$GITHUB_OUTPUT"
+          echo "Building against: $TAGS"
+
+  build:
+    needs: check-hyprland
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+    strategy:
+      fail-fast: false
+      matrix:
+        hyprland-tag: ${{ fromJson(needs.check-hyprland.outputs.versions) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm base-devel git cmake meson ninja \
+            wayland wayland-protocols libinput libxkbcommon pixman \
+            cairo pango seatd libdrm mesa vulkan-headers vulkan-icd-loader \
+            xorg-xwayland xcb-util-wm xcb-util-errors xcb-util-renderutil \
+            tomlplusplus hyprlang hyprutils hyprcursor hyprwayland-scanner \
+            aquamarine hyprgraphics pkg-config jq
+
+      - name: Build Hyprland ${{ matrix.hyprland-tag }} (headers)
+        run: |
+          git clone --depth 1 --branch ${{ matrix.hyprland-tag }} \
+            https://github.com/hyprwm/Hyprland.git /tmp/hyprland
+          cd /tmp/hyprland
+          cmake -B build -S . \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/usr
+          # Build just enough for headers + pkg-config
+          cmake --build build -j$(nproc) || true
+          cmake --install build --component headers 2>/dev/null || \
+            make -C build install-headers 2>/dev/null || \
+            cp -r src /usr/include/hyprland/src 2>/dev/null || true
+          # Ensure pkg-config works
+          if ! pkg-config --exists hyprland 2>/dev/null; then
+            mkdir -p /usr/lib/pkgconfig
+            cat > /usr/lib/pkgconfig/hyprland.pc << 'PKGEOF'
+          prefix=/usr
+          includedir=${prefix}/include
+
+          Name: hyprland
+          Description: Hyprland headers
+          Version: 0.0.0
+          Cflags: -I${includedir}/hyprland/protocols -I${includedir}/hyprland -I${includedir}/libdrm -I${includedir}/cairo -I${includedir}/freetype2 -I${includedir}/libpng16 -I${includedir}/pixman-1
+          Libs: -laquamarine -lhyprcursor -lhyprgraphics -lhyprlang -lhyprutils -ldrm -lEGL -lcairo -lxkbcommon -linput -lwayland-server -lm -lxcb-icccm -lxcb-composite -lxcb-xfixes -lxcb-render -lxcb-res -lxcb-errors -lxcb
+          PKGEOF
+          fi
+
+      - name: Install Hyprland headers properly
+        run: |
+          cd /tmp/hyprland
+          # Make sure version.h and all headers are in place
+          find build -name 'version.h' -exec cp {} src/ \; 2>/dev/null || true
+          mkdir -p /usr/include/hyprland
+          cp -r src/* /usr/include/hyprland/ 2>/dev/null || true
+          cp -r protocols /usr/include/hyprland/ 2>/dev/null || true
+          # Subprojects headers
+          for dir in subprojects/*/include; do
+            cp -r "$dir"/* /usr/include/ 2>/dev/null || true
+          done
+
+      - name: Build plugin
+        run: make
+
+      - name: Verify .so
+        run: |
+          file super-ws-overlay.so
+          # Check it exports the required symbols
+          nm -D super-ws-overlay.so | grep -q pluginInit
+          nm -D super-ws-overlay.so | grep -q pluginAPIVersion
+          echo "OK: plugin built successfully for ${{ matrix.hyprland-tag }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: super-ws-overlay-${{ matrix.hyprland-tag }}
+          path: super-ws-overlay.so
+
+  release:
+    needs: [check-hyprland, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        hyprland-tag: ${{ fromJson(needs.check-hyprland.outputs.versions) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: super-ws-overlay-${{ matrix.hyprland-tag }}
+
+      - name: Check if release exists
+        id: check
+        run: |
+          TAG="${{ matrix.hyprland-tag }}-1"
+          if gh release view "$TAG" &>/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create release
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          TAG="${{ matrix.hyprland-tag }}-1"
+          gh release create "$TAG" super-ws-overlay.so \
+            --title "super-ws-overlay for Hyprland ${{ matrix.hyprland-tag }}" \
+            --notes "Prebuilt binary for Hyprland ${{ matrix.hyprland-tag }} (x86_64 Linux).
+
+          ## Install
+
+          \`\`\`bash
+          curl -sfL https://raw.githubusercontent.com/qwexvf/super-ws-overlay/main/install.sh | bash
+          \`\`\`
+
+          Or download \`super-ws-overlay.so\` and place it in \`~/.config/hypr/plugins/\`."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
