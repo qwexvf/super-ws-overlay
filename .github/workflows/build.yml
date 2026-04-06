@@ -1,15 +1,11 @@
-name: Build & Release
+name: Build
 
 on:
   push:
     branches: [main]
+  pull_request:
   schedule:
-    # Check for new Hyprland in Arch repos daily at 06:00 UTC
     - cron: "0 6 * * *"
-  workflow_dispatch:
-
-permissions:
-  contents: write
 
 jobs:
   build:
@@ -17,54 +13,15 @@ jobs:
     container:
       image: archlinux:latest
     steps:
+      - name: Install dependencies
+        run: pacman -Syu --noconfirm base-devel git hyprland pkg-config
+
       - uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: |
-          pacman -Syu --noconfirm
-          pacman -S --noconfirm base-devel git hyprland jq pkg-config github-cli
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-
-      - name: Get Hyprland version
-        id: hypr
-        run: |
-          TAG=$(pacman -Q hyprland | awk '{print "v"$2}' | sed 's/-.*$//')
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "Hyprland version: $TAG"
-
-      - name: Build plugin
+      - name: Build
         run: make
 
-      - name: Verify
+      - name: Verify symbols
         run: |
-          file super-ws-overlay.so
           nm -D super-ws-overlay.so | grep -q pluginInit
           nm -D super-ws-overlay.so | grep -q pluginAPIVersion
-          echo "OK: built for Hyprland ${{ steps.hypr.outputs.tag }}"
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: super-ws-overlay-${{ steps.hypr.outputs.tag }}
-          path: super-ws-overlay.so
-
-      - name: Create or update release
-        run: |
-          TAG="${{ steps.hypr.outputs.tag }}-1"
-          if gh release view "$TAG" &>/dev/null 2>&1; then
-            gh release upload "$TAG" super-ws-overlay.so --clobber
-          else
-            gh release create "$TAG" super-ws-overlay.so \
-              --title "super-ws-overlay for Hyprland ${{ steps.hypr.outputs.tag }}" \
-              --notes "Prebuilt binary for Hyprland ${{ steps.hypr.outputs.tag }} (x86_64 Linux).
-
-          ## Install
-
-          \`\`\`bash
-          curl -sfL https://raw.githubusercontent.com/qwexvf/super-ws-overlay/main/install.sh | bash
-          \`\`\`
-
-          Or download \`super-ws-overlay.so\` and place it in \`~/.config/hypr/plugins/\`."
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

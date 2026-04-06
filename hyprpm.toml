@@ -1,0 +1,7 @@
+[repository]
+name = "super-ws-overlay"
+
+[super-ws-overlay]
+description = "Show workspace overlay on Super hold"
+output = "super-ws-overlay.so"
+build = ["make clean", "make"]
