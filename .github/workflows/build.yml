@@ -19,7 +19,7 @@ jobs:
       - name: Install dependencies
         run: |
           pacman -Syu --noconfirm
-          pacman -S --noconfirm base-devel hyprland jq pkg-config
+          pacman -S --noconfirm base-devel hyprland jq pkg-config github-cli
 
       - name: Get Hyprland version
         id: hypr
