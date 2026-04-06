@@ -24,21 +24,14 @@ jobs:
           else
             LOG=$(git log --pretty=format:"- %s")
           fi
+          DELIM=$(openssl rand -hex 8)
           {
-            echo "notes<<EOF"
-            echo "## What's changed"
-            echo ""
-            echo "$LOG"
-            echo ""
-            echo "## Install"
-            echo ""
-            echo '```bash'
-            echo "hyprpm add https://github.com/qwexvf/super-ws-overlay"
-            echo "hyprpm enable super-ws-overlay"
-            echo '```'
-            echo ""
-            echo "Or build manually: \`make && make install\`"
-            echo "EOF"
+            echo "notes<<${DELIM}"
+            printf '## Changes\n\n%s\n\n' "$LOG"
+            printf '## Install\n\n'
+            printf '```bash\nhyprpm add https://github.com/qwexvf/super-ws-overlay\nhyprpm enable super-ws-overlay\n```\n\n'
+            printf 'Or build manually: `make && make install`\n'
+            echo "${DELIM}"
           } >> "$GITHUB_OUTPUT"
 
       - name: Create release
